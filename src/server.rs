@@ -1,6 +1,6 @@
 use super::{
     configuration::Settings,
-    services::service_config::full_stack_service_config
+    app_services::app_service_config::full_stack_service_config
 };
 use std::{io, net::TcpListener};
 use actix_web::{dev::Server, App, HttpServer};
