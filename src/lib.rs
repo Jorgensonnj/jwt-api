@@ -1,4 +1,4 @@
-pub mod application;
+pub mod server;
 pub mod configuration;
 pub mod telemetry;
-pub mod app_services;
+pub mod services;

@@ -1,7 +1,7 @@
 use jwt_api::{
     configuration,
     telemetry,
-    application::Application
+    server::AppServer
 };
 use tokio::task::JoinError;
 use std::fmt::{Debug, Display};
@@ -10,7 +10,7 @@ use std::fmt::{Debug, Display};
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     // log
-    let subscriber = telemetry::get_subscriber("info".into(), std::io::stdout);
+    let subscriber = telemetry::get_subscriber("info", std::io::stdout);
     telemetry::init_subscriber(subscriber);
 
     // configure
@@ -18,11 +18,11 @@ async fn main() -> anyhow::Result<()> {
         .expect("Failed to read configuration.");
 
     // build and run
-    let application = Application::build(config).await?;
-    let application_task = tokio::spawn(application.run_until_stopped());
+    let server = AppServer::build(config).await?;
+    let server_task = tokio::spawn(server.run_until_stopped());
 
     tokio::select!{
-        outcome = application_task => exit_report("API", outcome),
+        outcome = server_task => exit_report("API", outcome)
     };
 
     Ok(())
