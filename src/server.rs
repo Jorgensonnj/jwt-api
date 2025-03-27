@@ -1,9 +1,12 @@
 use super::{
     configuration::Settings,
-    app_services::app_service_config::full_stack_service_config
+    app_services::app_service_config::full_stack_service_config,
+    authorization::decode_jwt
 };
-use std::{io, net::TcpListener};
-use actix_web::{dev::Server, App, HttpServer};
+use std::{io, net::TcpListener, collections::HashSet};
+use actix_web::{App, HttpServer, dev::{Server,ServiceRequest}, http::header::Header};
+use actix_web_httpauth::headers::authorization::{Bearer, Authorization};
+use actix_web_grants::GrantsMiddleware;
 use tracing_actix_web::TracingLogger;
 //use sqlx::{
 //    Pool,
@@ -18,6 +21,7 @@ pub struct AppServer {
 impl AppServer {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
         // setup the port
+
         let address = format!(
             "{}:{}",
             configuration.application.host,
@@ -41,8 +45,12 @@ impl AppServer {
 
         // build server
         let server = HttpServer::new(move || {
+
+            let token_extractor = GrantsMiddleware::with_extractor(extract);
+
             App::new()
                 .wrap(TracingLogger::default())
+                .wrap(token_extractor)
                 .configure(full_stack_service_config)
                 //.app_data(data_database_pool.clone())
             }
@@ -60,4 +68,22 @@ impl AppServer {
     pub async fn run_until_stopped(self) -> Result<(), io::Error> {
         self.server.await
     }
+}
+
+pub async fn extract(
+    req: &ServiceRequest
+) -> Result<HashSet<String>, actix_web::Error> {
+
+    let permissions = match Authorization::<Bearer>::parse(req).ok() {
+        Some(auth) => {
+            let claims = decode_jwt(auth.as_ref().token())?;
+            match claims.permissions {
+                Some(perm) => perm.into_iter().collect(),
+                None => {HashSet::new()}
+            }
+        },
+        None => {HashSet::new()}
+    };
+
+    Ok(permissions)
 }
