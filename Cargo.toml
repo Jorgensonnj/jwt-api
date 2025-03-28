@@ -8,7 +8,7 @@ edition = "2024"
 path = "src/lib.rs"
 
 [[bin]]
-name = "scout"
+name = "jwt-api"
 path = "src/main.rs"
 
 [dependencies]
