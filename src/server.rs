@@ -2,7 +2,7 @@ use super::{
     configuration::Settings,
     app::{
         app_service_config::full_stack_service_config,
-        app_auth::jwt_extract
+        app_auth::extract_jwt_permissions
     }
 };
 use std::{io, net::TcpListener};
@@ -48,11 +48,11 @@ impl AppServer {
         // build server
         let server = HttpServer::new(move || {
 
-            let jwt_extractor = GrantsMiddleware::with_extractor(jwt_extract);
+            let auth = GrantsMiddleware::with_extractor(extract_jwt_permissions);
 
             App::new()
                 .wrap(TracingLogger::default())
-                .wrap(jwt_extractor)
+                .wrap(auth)
                 .configure(full_stack_service_config)
                 //.app_data(data_database_pool.clone())
             }

@@ -1,16 +1,9 @@
-use super::super::super::back_end::module_auth::Module;
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 //use chrono::{Duration, TimeDelta, Utc};
 
 // token lifetime are hardcoded for now
 //const JWT_EXPIRATION_MINS: i64 = 24;
-
-#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum Permission {
-    NoAccess,
-    ReadOnly(Module),
-    ReadAndWrite(Module)
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenPayload {
@@ -21,7 +14,25 @@ pub struct TokenPayload {
     pub iss: Option<String>,  //(issuer): Issuer of the JWT
     pub sub: Option<String>,  //(subject): Subject of the JWT (the user)
     pub id: Option<String>,
-    pub permissions: Option<Vec<Permission>>,
+    pub permissions: Option<HashMap<Module, AccessLevel>>,
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum AccessLevel {
+    ReadOnly,
+    ReadAndWrite
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum Module {
+    Admin,
+    Auth
+}
+
+#[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ModulePermission {
+    pub module: Module,
+    pub access_level: AccessLevel,
 }
 
 //impl TokenPayload {
