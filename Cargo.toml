@@ -17,7 +17,6 @@ actix-web-httpauth = "0.8"
 actix-web-grants = "4"
 
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
-anyhow = "1"
 jsonwebtoken = "9"
 chrono = "0.4"
 

@@ -8,7 +8,7 @@ use std::fmt::{Debug, Display};
 //use sqlx::sqlite::SqlitePoolOptions;
 
 #[actix_web::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> std::io::Result<()> {
     // log
     let subscriber = telemetry::get_subscriber("info", std::io::stdout);
     telemetry::init_subscriber(subscriber);
@@ -36,18 +36,18 @@ fn exit_report(
         Ok(Ok(())) => {
             tracing::info!("{} has exited.", task_name)
         }
-        Ok(Err(e)) => {
+        Ok(Err(err)) => {
             tracing::error!(
-                error.cause_chain = ?e,
-                error.message = %e,
+                error.cause_chain = ?err,
+                error.message = %err,
                 "{} failed.",
                 task_name
             )
         }
-        Err(e) => {
+        Err(err) => {
             tracing::error!(
-                error.cause_chain = ?e,
-                error.message = %e,
+                error.cause_chain = ?err,
+                error.message = %err,
                 "{}' task failed to complete.",
                 task_name
             )

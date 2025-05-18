@@ -37,6 +37,9 @@ pub async fn extract_jwt_permissions(
         .map(|data| data.claims)
         .map_err(|err| ErrorUnauthorized(err.to_string()))?;
 
+    //NOTE: for debug purposes
+    //dbg!(&token);
+
     // convert hashmap to hashset
     let permissions = match token.permissions {
         Some(permissions) => {

@@ -2,13 +2,23 @@ use super::{
     configuration::Settings,
     app::{
         app_service_config::full_stack_service_config,
-        app_auth::extract_jwt_permissions
+        app_auth::extract_jwt_permissions,
+        shared::models::response_models::{AppResponse, AppResponseStatus}
     }
 };
 use std::{io, net::TcpListener};
-use actix_web::{App, HttpServer, dev::Server};
+use actix_web::{
+    App,
+    HttpServer,
+    HttpResponse,
+    Result,
+    error::ErrorInternalServerError,
+    dev::{Server, ServiceResponse},
+    middleware::{ErrorHandlers, ErrorHandlerResponse}
+};
 use actix_web_grants::GrantsMiddleware;
 use tracing_actix_web::TracingLogger;
+
 //use sqlx::{
 //    Pool,
 //    sqlite::{Sqlite, SqliteConnectOptions, SqlitePoolOptions}
@@ -20,10 +30,8 @@ pub struct AppServer {
 }
 
 impl AppServer {
-    pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
+    pub async fn build(configuration: Settings) -> Result<Self, io::Error> {
         // setup the port
-
-
         let address = format!(
             "{}:{}",
             configuration.application.host,
@@ -48,11 +56,13 @@ impl AppServer {
         // build server
         let server = HttpServer::new(move || {
 
-            let auth = GrantsMiddleware::with_extractor(extract_jwt_permissions);
+            let auth_handler = GrantsMiddleware::with_extractor(extract_jwt_permissions);
+            let error_handlers = ErrorHandlers::new().default_handler(default_error_handler);
 
             App::new()
+                .wrap(auth_handler)
+                .wrap(error_handlers)
                 .wrap(TracingLogger::default())
-                .wrap(auth)
                 .configure(full_stack_service_config)
                 //.app_data(data_database_pool.clone())
             }
@@ -72,3 +82,28 @@ impl AppServer {
     }
 }
 
+fn default_error_handler<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
+
+    // break apart service response
+    let (req, res) = res.into_parts();
+
+    let status_code = res.status();
+    let error = res.error()
+        .ok_or(ErrorInternalServerError("Unable to get response error."))?
+        .to_string();
+
+    // buil app's response
+    let error_res = AppResponse {
+        status: AppResponseStatus::Error,
+        status_code: status_code.as_u16(),
+        message: error
+    };
+
+    let new_res = HttpResponse::build(status_code).json(error_res);
+
+    let res = ServiceResponse::new(req, new_res)
+        .map_into_boxed_body()
+        .map_into_right_body();
+
+    Ok(ErrorHandlerResponse::Response(res))
+}
