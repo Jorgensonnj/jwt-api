@@ -8,13 +8,10 @@ use super::{
 };
 use std::{io, net::TcpListener};
 use actix_web::{
-    App,
-    HttpServer,
-    HttpResponse,
-    Result,
-    error::ErrorInternalServerError,
     dev::{Server, ServiceResponse},
-    middleware::{ErrorHandlers, ErrorHandlerResponse}
+    error::ErrorInternalServerError,
+    middleware::{ErrorHandlerResponse, ErrorHandlers},
+    web::Data, App, HttpResponse, HttpServer, Result
 };
 use actix_web_grants::GrantsMiddleware;
 use tracing_actix_web::TracingLogger;
@@ -30,12 +27,12 @@ pub struct AppServer {
 }
 
 impl AppServer {
-    pub async fn build(configuration: Settings) -> Result<Self, io::Error> {
+    pub async fn build(config: Settings) -> Result<Self, io::Error> {
         // setup the port
         let address = format!(
             "{}:{}",
-            configuration.application.host,
-            configuration.application.port
+            config.application.host,
+            config.application.port
         );
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr()?.port();
@@ -53,6 +50,8 @@ impl AppServer {
         // Wrap into data
         //let data_database_pool = Data::new(database_pool);
 
+        let data_config = Data::new(config);
+
         // build server
         let server = HttpServer::new(move || {
 
@@ -64,6 +63,7 @@ impl AppServer {
                 .wrap(error_handlers)
                 .wrap(TracingLogger::default())
                 .configure(full_stack_service_config)
+                .app_data(data_config.clone())
                 //.app_data(data_database_pool.clone())
             }
         )
@@ -89,7 +89,7 @@ fn default_error_handler<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerRespo
 
     let status_code = res.status();
     let error = res.error()
-        .ok_or(ErrorInternalServerError("Unable to get response error."))?
+        .unwrap_or(&ErrorInternalServerError("Unable to get response error."))
         .to_string();
 
     // buil app's response

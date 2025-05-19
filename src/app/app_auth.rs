@@ -1,15 +1,18 @@
-use super::shared::models::auth_models::{TokenPayload, ModulePermission};
+use super::{
+    super::configuration::Settings,
+    shared::models::auth_models::{TokenPayload, ModulePermission}
+};
 use std::collections::HashSet;
 use actix_web::{
+    web::Data,
     dev::ServiceRequest,
     http::header::Header,
     error::ErrorUnauthorized,
 };
 use actix_web_httpauth::headers::authorization::{Bearer, Authorization};
 use jsonwebtoken::{DecodingKey, Validation, Algorithm};
+use secrecy::ExposeSecret;
 //use jsonwebtoken::EncodingKey;
-
-const SECRET: &str = "Indisputably-Ursine-Statement-05";
 
 //// create a json web token
 //pub fn jwt_create(claims: TokenPayload) -> Result<String, actix_web::Error> {
@@ -28,10 +31,14 @@ pub async fn extract_jwt_permissions(
     // parse request for bearer authorization
     let bearer_auth = Authorization::<Bearer>::parse(req)?;
 
+    // extract secret
+    let config = req.app_data::<Data<Settings>>().expect("Settings not found.");
+    let secret = config.authentication.password.expose_secret();
+
     // decode bearer authorization
     let token = jsonwebtoken::decode::<TokenPayload>(
             bearer_auth.as_ref().token(),
-            &DecodingKey::from_secret(SECRET.as_bytes()),
+            &DecodingKey::from_secret(secret.as_bytes()),
             &Validation::new(Algorithm::HS256)
         )
         .map(|data| data.claims)

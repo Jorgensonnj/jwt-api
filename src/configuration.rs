@@ -1,16 +1,18 @@
 use std::collections::HashMap;
 use config::{Config, ConfigError, File};
-use secrecy::SecretBox;
+use secrecy::SecretString;
+use serde::Deserialize;
 //use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Settings {
     pub application: ApplicationSettings,
+    pub authentication: AuthenticationSettings,
     pub database: Option<DatabaseSettings>,
     pub modules: Option<HashMap<String, ModuleSettings>>,
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ApplicationSettings {
     pub driver: String,
     pub host: String,
@@ -29,13 +31,18 @@ impl ApplicationSettings {
     }
 }
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Debug, Clone, Deserialize)]
+pub struct AuthenticationSettings {
+    pub password: SecretString,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseSettings {
     pub driver: String,
     pub host: String,
     pub port: u16,
     pub username: String,
-    pub password: SecretBox<String>,
+    pub password: SecretString,
     pub database_name: String,
     pub require_ssl: bool
 }
@@ -52,7 +59,7 @@ pub struct DatabaseSettings {
 //    }
 //}
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ModuleSettings {
     pub driver: String,
     pub host: String,
@@ -121,13 +128,12 @@ impl TryFrom<String> for Environment {
     type Error = String;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        match s.to_lowercase()
-            .as_str() {
-                "local" => Ok(Self::Local),
-                "production" => Ok(Self::Production),
-                other => Err(
-                    format!("{} is not a supported environment.", other)
-                ),
-            }
+        match s.to_lowercase().as_str() {
+            "local" => Ok(Self::Local),
+            "production" => Ok(Self::Production),
+            other => Err(
+                format!("{} is not a supported environment.", other)
+            ),
+        }
     }
 }
