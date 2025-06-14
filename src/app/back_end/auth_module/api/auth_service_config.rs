@@ -1,4 +1,4 @@
-use super::routes::login_routes::login;
+use super::routes::login;
 use actix_web::{web::get, web::ServiceConfig};
 
 pub fn auth_api_service(config: &mut ServiceConfig) {
